@@ -260,8 +260,8 @@ func fetchMetadata() (*metadata.Metadata, error) {
 						},
 					},
 					SequenceData: &metadata.SequenceData{
-						// Fixed value for UKW-CCC => HG19!
-						ReferenceGenome: metadata.GRCh37,
+						// As mapped from Onkostar HG19 => GRCh37!
+						ReferenceGenome: metadata.ReferenceGenome(donorsLabdataSequencedataReferencegenome.String),
 						Files:           []metadata.File{},
 					},
 				}

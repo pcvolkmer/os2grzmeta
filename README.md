@@ -1,0 +1,31 @@
+# Onkostar Extraktion von GRZ-Metadaten
+
+Ziel dieser Anwendung ist das Bereitstellen einer Vorlage für GRZ-Metadaten mit einigen Daten, extrahiert aus
+der Onkostar-Datenbank.
+
+## Anwendung
+
+Der Parameter `--help` zeigt folgenden Hilfetext an
+
+```
+Usage: os2grzmeta --user=STRING --sample-id=STRING --filename=STRING [flags]
+
+A simple tool to export GRZ metadata template from Onkostar database
+
+Flags:
+  -h, --help                   Show context-sensitive help.
+  -U, --user=STRING            Database username
+  -P, --password=STRING        Database password
+  -H, --host="localhost"       Database host
+      --port=3306              Database port
+      --ssl="false"            SSL-Verbindung ('true', 'false', 'skip-verify', 'preferred')
+  -D, --database="onkostar"    Database name
+      --sample-id=STRING       Einsendenummer
+      --filename=STRING        Ausgabedatei
+```
+
+Wird der Parameter `--password` nicht verwendet, wird das Datenbankpasswort abgefragt.
+
+Werden für eine Proben-(Einsende)-Nummer mehrere zugeordnete Fallnummern ermittelt, wird die Fallnummer erfragt.
+
+Die Angaben zum MV-Consent beziehen sich auf die Fallnummer.

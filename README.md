@@ -27,5 +27,8 @@ Flags:
 Wird der Parameter `--password` nicht verwendet, wird das Datenbankpasswort abgefragt.
 
 Werden für eine Proben-(Einsende)-Nummer mehrere zugeordnete Fallnummern ermittelt, wird die Fallnummer erfragt.
+Weiterhin wird das verwendete GRZ und der KDK abgefragt.
 
-Die Angaben zum MV-Consent beziehen sich auf die Fallnummer.
+![Auswahlformular](docs/form.png)
+
+Die Angaben zum MV-Consent in der Ausgabedatei beziehen sich auf die ausgewählte Fallnummer.

@@ -29,6 +29,9 @@ Wird der Parameter `--password` nicht verwendet, wird das Datenbankpasswort abge
 Werden für eine Proben-(Einsende)-Nummer mehrere zugeordnete Fallnummern ermittelt, wird die Fallnummer erfragt.
 Weiterhin wird das verwendete GRZ und der KDK abgefragt.
 
+Es können zudem für LabData-Angaben Profile ausgewählt werden, die Standardwerte setzen.
+Enthalten sind aktuell Standardwerte für das UK Würzburg.
+
 ![Auswahlformular](docs/form.png)
 
 Die Angaben zum MV-Consent in der Ausgabedatei beziehen sich auf die ausgewählte Fallnummer.

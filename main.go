@@ -118,14 +118,18 @@ func main() {
 	fallnummern, err := fetchFallnummern()
 
 	if err != nil {
-		log.Fatalf("Cannot fetch Fallnummern: %s\n", err.Error())
+		log.Fatalf("Cannot fetch available Fallnummern: %s\n", err.Error())
 	}
+
+	var klinik string
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			fallnummerSelect(fallnummern),
+			klinikSelect().Value(&klinik),
+			profileSelect(klinik),
 			grzSelect(),
 			kdkSelect(),
+			fallnummerSelect(fallnummern),
 		).Title("Weitere Angaben zum Fall, Genomrechenzentrum und zum klinischen Datenknoten"),
 	).WithTheme(huh.ThemeBase16())
 
@@ -140,11 +144,39 @@ func main() {
 	data.Submission.ClinicalDataNodeID = form.GetString("KDK")
 	data.Submission.GenomicDataCenterID = form.GetString("GRZ")
 
+	if profile := FindProfile(klinik, form.GetString("Profil")); profile != nil {
+		data.Submission.GenomicStudyType = metadata.GenomicStudyType(profile.GenomicStudyType)
+		data.Submission.GenomicStudySubtype = metadata.GenomicStudySubtype(profile.GenomicStudySubtype)
+		data.Submission.LabName = profile.LabName
+		data.Donors[0].LabData[0].LabDataName = profile.LabDataName
+		data.Donors[0].LabData[0].TissueTypeName = profile.TissueTypeName
+		data.Donors[0].LabData[0].SequenceType = metadata.SequenceType(profile.SequenceType)
+		data.Donors[0].LabData[0].SequenceSubtype = metadata.SequenceSubtype(profile.SequenceSubType)
+		data.Donors[0].LabData[0].FragmentationMethod = metadata.FragmentationMethod(profile.FragmentationMethod)
+		data.Donors[0].LabData[0].LibraryType = metadata.LibraryType(profile.LibraryType)
+		data.Donors[0].LabData[0].LibraryPrepKit = profile.LibraryPrepKit
+		data.Donors[0].LabData[0].LibraryPrepKitManufacturer = profile.LibraryPrepKitManufacturer
+		data.Donors[0].LabData[0].SequencerModel = profile.SequencerModel
+		data.Donors[0].LabData[0].SequencerManufacturer = profile.SequencerManufacturer
+		data.Donors[0].LabData[0].KitName = profile.KitName
+		data.Donors[0].LabData[0].KitManufacturer = profile.KitManufacturer
+		data.Donors[0].LabData[0].EnrichmentKitManufacturer = metadata.EnrichmentKitManufacturer(profile.EnrichmentKitManufacturer)
+		data.Donors[0].LabData[0].EnrichmentKitDescription = profile.EnrichmentKitDescription
+		data.Donors[0].LabData[0].SequencingLayout = metadata.SequencingLayout(profile.SequencingLayout)
+		data.Donors[0].LabData[0].TumorCellCount[0].Method = metadata.Method(profile.TumorCellCountMethod)
+		data.Donors[0].LabData[0].SequenceData.BioinformaticsPipelineName = profile.BioinformaticsPipelineName
+		data.Donors[0].LabData[0].SequenceData.BioinformaticsPipelineVersion = profile.BioinformaticsPipelineVersion
+		data.Donors[0].LabData[0].SequenceData.CallerUsed = append(data.Donors[0].LabData[0].SequenceData.CallerUsed, metadata.CallerUsed{
+			Name:    profile.CallerUsedName,
+			Version: profile.CallerUsedVersion,
+		})
+	}
+
 	j, _ := json.MarshalIndent(data, "", "  ")
 	if err := os.WriteFile(cli.Filename, j, 0644); err != nil {
 		log.Fatal(err)
 	} else {
-		fmt.Printf("\033[32m✅ Ermittelte Daten wurden in Datei '%s' geschrieben.\033[0m\n", cli.Filename)
+		fmt.Printf("\033[32m✅ Ermittelte Daten wurden als Vorlage in die Datei '%s' geschrieben.\033[0m\n", cli.Filename)
 	}
 }
 
@@ -180,6 +212,33 @@ func fallnummerSelect(fallnummern []string) *huh.Select[string] {
 		Options(options...).
 		Key("Fallnummer").
 		Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'")
+}
+
+func klinikSelect() *huh.Select[string] {
+	options := []huh.Option[string]{}
+	for _, option := range ReadProfiles() {
+		options = append(options, huh.NewOption(fmt.Sprintf("%s - %s", option.Ik, option.Name), option.Ik))
+	}
+	return huh.NewSelect[string]().Title("Leistungserbringer").
+		Options(options...).
+		Key("Leistungserbringer").
+		Description("Leistungserbringer für das Modellvorhaben")
+}
+
+func profileSelect(ik string) *huh.Select[string] {
+	options := []huh.Option[string]{}
+	for _, klinik := range ReadProfiles() {
+		if klinik.Ik == ik || len(ik) == 0 {
+			options = append(options, huh.NewOption("--- (Kein Profil anwenden)", ""))
+			for _, profile := range klinik.Profiles {
+				options = append(options, huh.NewOption(profile.Name, profile.Name))
+			}
+		}
+	}
+	return huh.NewSelect[string]().Title("Profil").
+		Options(options...).
+		Key("Profil").
+		Description("Profil for LabData - Siehe auch Formular 'Molekulargenetische Untersuchung'")
 }
 
 func fetchMetadata(fallnummer string) (*metadata.Metadata, error) {

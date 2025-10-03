@@ -1,0 +1,17 @@
+*
+
+!.gitignore
+!profiles.json
+!Makefile
+!/resources
+!/resources/**
+!/.github
+!/.github/**
+!/*.go
+!/*.mod
+!/*.md
+!/*.sum
+!/*.txt
+!/*.gif
+!/*.png
+!/LICENSE*

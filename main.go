@@ -26,13 +26,11 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"syscall"
 
 	"github.com/alecthomas/kong"
 	"github.com/charmbracelet/huh"
 	"github.com/go-sql-driver/mysql"
 	"github.com/pcvolkmer/mv64e-grz-dto-go"
-	"golang.org/x/term"
 )
 
 var (
@@ -88,11 +86,11 @@ func main() {
 	initCLI()
 
 	if len(cli.Password) == 0 {
-		fmt.Print("Passwort: ")
-		if bytePw, err := term.ReadPassword(int(syscall.Stdin)); err == nil {
-			cli.Password = string(bytePw)
-		}
-		println()
+		_ = huh.NewInput().Title("Passwort").
+			Value(&cli.Password).
+			EchoMode(huh.EchoModePassword).
+			WithTheme(huh.ThemeBase16()).
+			Run()
 	}
 
 	dbCfg := mysql.Config{
@@ -117,29 +115,74 @@ func main() {
 		log.Fatalf("Cannot connect to Database: %s\n", dbErr.Error())
 	}
 
-	data, err := fetchMetadata()
+	fallnummern, err := fetchFallnummern()
+
 	if err != nil {
-		log.Fatalf("Cannot fetch metadata: %s\n", err.Error())
+		log.Fatalf("Cannot fetch Fallnummern: %s\n", err.Error())
 	}
-	j, err := json.MarshalIndent(data, "", "  ")
+
+	form := huh.NewForm(
+		huh.NewGroup(
+			fallnummerSelect(fallnummern),
+			grzSelect(),
+			kdkSelect(),
+		).Title("Weitere Angaben zum Fall, Genomrechenzentrum und zum klinischen Datenknoten"),
+	).WithTheme(huh.ThemeBase16())
+
+	_ = form.Run()
+
+	data, _ := fetchMetadata(form.GetString("Fallnummer"))
+	if data == nil {
+		log.Fatalf("Cannot fetch metadata")
+	}
+
+	data.Submission.LocalCaseID = form.GetString("Fallnummer")
+	data.Submission.ClinicalDataNodeID = form.GetString("KDK")
+	data.Submission.GenomicDataCenterID = form.GetString("GRZ")
+
+	j, _ := json.MarshalIndent(data, "", "  ")
 	if err := os.WriteFile(cli.Filename, j, 0644); err != nil {
 		log.Fatal(err)
+	} else {
+		fmt.Printf("\033[32m✅ Ermittelte Daten wurden in Datei '%s' geschrieben.\033[0m\n", cli.Filename)
 	}
 }
 
-func fetchMetadata() (*metadata.Metadata, error) {
-	fallnummer := ""
+func grzSelect() *huh.Select[string] {
+	return huh.NewSelect[string]().Title("Genomrechenzentrum").Options(
+		huh.NewOption("GRZK00001 (GRZ Köln)", "GRZK00001"),
+		huh.NewOption("GRZTUE002 (GRZ Tübingen)", "GRZTUE002"),
+		huh.NewOption("GRZHD0003 (GRZ Heidelberg)", "GRZHD0003"),
+		huh.NewOption("GRZDD0004 (GRZ Dresden)", "GRZDD0004"),
+		huh.NewOption("GRZM00006 (GRZ München)", "GRZM00006"),
+		huh.NewOption("GRZB00007 (GRZ Berlin)", "GRZB00007"),
+	).Key("GRZ").Description("Am Standort verwendetes Genomrechenzentrum")
+}
 
-	fallnummern, err := fetchFallnummern()
+func kdkSelect() *huh.Select[string] {
+	return huh.NewSelect[string]().Title("Klinischer Datenknoten").Options(
+		huh.NewOption("KDKDD0001 - GfH-NET (Universitätsklinikum Dresden)", "KDKDD0001"),
+		huh.NewOption("KDKTUE002 - NSE (Universitätsklinikum Tübingen)", "KDKTUE002"),
+		huh.NewOption("KDKL00003 - DK-FBREK (Universität Leipzig)", "KDKL00003"),
+		huh.NewOption("KDKL00004 - DK-FDK (Universität Leipzig)", "KDKL00004"),
+		huh.NewOption("KDKTUE005 - DNPM (Universitätsklinikum Tübingen)", "KDKTUE005"),
+		huh.NewOption("KDKHD0006 - NCT/DKTK MASTER (NCT Heidelberg)", "KDKHD0006"),
+		huh.NewOption("KDKK00007 - nNGM (Universitätsklinikum Köln)", "KDKK00007"),
+	).Key("KDK").Description("Am Standort verwendeter klinischer Datenknoten")
+}
 
-	if err == nil && len(fallnummern) > 1 {
-		options := []huh.Option[string]{}
-		for _, option := range fallnummern {
-			options = append(options, huh.NewOption(option, option))
-		}
-		huh.NewSelect[string]().Title("Fallnummer").Options(options...).Value(&fallnummer)
+func fallnummerSelect(fallnummern []string) *huh.Select[string] {
+	options := []huh.Option[string]{}
+	for _, option := range fallnummern {
+		options = append(options, huh.NewOption(option, option))
 	}
+	return huh.NewSelect[string]().Title("Fallnummer").
+		Options(options...).
+		Key("Fallnummer").
+		Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'")
+}
 
+func fetchMetadata(fallnummer string) (*metadata.Metadata, error) {
 	query := `SELECT
 				organisationunit.identifier AS submission_labname,
 				CASE
@@ -225,7 +268,6 @@ func fetchMetadata() (*metadata.Metadata, error) {
 						SubmissionType: metadata.Initial,
 						CoverageType:   metadata.CoverageType(submissionCoveragetype.String),
 						DiseaseType:    metadata.Oncological,
-						LocalCaseID:    fallnummer,
 					}
 
 					result.Donors = []metadata.Donor{
@@ -311,6 +353,8 @@ func fetchFallnummern() ([]string, error) {
 				result = append(result, caseId.String)
 			}
 		}
+	} else {
+		return nil, err
 	}
 
 	return result, nil

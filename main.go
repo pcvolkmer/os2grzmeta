@@ -248,7 +248,7 @@ func (f *Form) Init(fallnummern []string) {
 					huh.NewOption("GRZB00007 (GRZ Berlin)", "GRZB00007"),
 				).
 				Value(&f.selectedGrz).
-				Description("Zu verwendetes Genomrechenzentrum"),
+				Description("Zu verwendendes Genomrechenzentrum"),
 			huh.NewSelect[string]().
 				Title("Klinischer Datenknoten").
 				Options(
@@ -261,7 +261,7 @@ func (f *Form) Init(fallnummern []string) {
 					huh.NewOption("KDKK00007 - nNGM (Universitätsklinikum Köln)", "KDKK00007"),
 				).
 				Value(&f.selectedKdk).
-				Description("Zu verwendeter klinischer Datenknoten"),
+				Description("Zu verwendender klinischer Datenknoten"),
 			huh.NewSelect[string]().
 				Title("Fallnummer").
 				Options(fallnummerOptions...).

@@ -46,7 +46,7 @@ type Globals struct {
 	Port     int    `help:"Database port" default:"3306"`
 	Ssl      string `help:"SSL-Verbindung ('true', 'false', 'skip-verify', 'preferred')" default:"false"`
 	Database string `short:"D" help:"Database name" default:"onkostar"`
-	SampleId string `help:"Einsendenummer" required:"NA"`
+	SampleId string `help:"Einsendenummer"`
 	Filename string `help:"Ausgabedatei" required:"NA"`
 }
 
@@ -115,14 +115,8 @@ func main() {
 		log.Fatalf("Cannot connect to Database: %s\n", dbErr.Error())
 	}
 
-	fallnummern, err := fetchFallnummern()
-
-	if err != nil {
-		log.Fatalf("Cannot fetch available Fallnummern: %s\n", err.Error())
-	}
-
 	form := NewForm()
-	form.Init(fallnummern)
+	form.Init()
 	_ = form.Run()
 
 	data, _ := fetchMetadata(form.selectedFallnummer)
@@ -190,30 +184,36 @@ func (f *Form) Run() error {
 	return f.innerForm.Run()
 }
 
-func (f *Form) Init(fallnummern []string) {
-	fallnummern, err := fetchFallnummern()
-	if err != nil {
-		log.Fatalf("Cannot fetch available Fallnummern: %s\n", err.Error())
-	}
-	f.availableFallnummern = fallnummern
-
+func (f *Form) Init() {
 	ikOptions := []huh.Option[string]{}
 	for _, option := range ReadProfiles() {
 		ikOptions = append(ikOptions, huh.NewOption(fmt.Sprintf("%s - %s", option.Ik, option.Name), option.Ik))
 	}
 
-	fallnummerOptions := []huh.Option[string]{}
-	for _, option := range fallnummern {
-		fallnummerOptions = append(fallnummerOptions, huh.NewOption(option, option))
-	}
-
 	f.innerForm = huh.NewForm(
 		huh.NewGroup(
+			huh.NewInput().
+				Title("Einsendenummer").
+				Value(&cli.SampleId),
+			huh.NewSelect[string]().
+				Title("Fallnummer").
+				OptionsFunc(func() []huh.Option[string] {
+					fallnummerOptions := []huh.Option[string]{
+						huh.NewOption("--- (Keine Angabe)", ""),
+					}
+					if fallnummern, err := fetchFallnummern(); err == nil {
+						for _, option := range fallnummern {
+							fallnummerOptions = append(fallnummerOptions, huh.NewOption(option, option))
+						}
+					}
+					return fallnummerOptions
+				}, &cli.SampleId).
+				Key("Fallnummer").
+				Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'"),
 			huh.NewSelect[string]().
 				Title("Leistungserbringer").
 				Options(ikOptions...).
-				Value(&f.selectedIk).
-				Description("Leistungserbringer für das Modellvorhaben"),
+				Value(&f.selectedIk),
 			huh.NewSelect[string]().
 				Title("LabData-Profil").
 				OptionsFunc(func() []huh.Option[string] {
@@ -262,11 +262,6 @@ func (f *Form) Init(fallnummern []string) {
 				).
 				Value(&f.selectedKdk).
 				Description("Zu verwendender klinischer Datenknoten"),
-			huh.NewSelect[string]().
-				Title("Fallnummer").
-				Options(fallnummerOptions...).
-				Key("Fallnummer").
-				Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'"),
 		).Title("Weitere Angaben zum Fall, Genomrechenzentrum und zum klinischen Datenknoten"),
 	).
 		WithTheme(huh.ThemeBase16())
@@ -387,7 +382,7 @@ func fetchMetadata(fallnummer string) (*metadata.Metadata, error) {
 					TumorCellCount: []metadata.TumorCellCount{
 						{
 							Count: tumorCellCount,
-							// Fixed value for UKW-CCC!
+							// Fixed value for UKW-CCC! Will be overwritten by profile
 							Method: metadata.Pathology,
 						},
 					},
@@ -414,7 +409,7 @@ func fetchFallnummern() ([]string, error) {
 	query := `SELECT DISTINCT
 			dk_dnpm_kpa.fallnummermv
 		FROM dk_dnpm_kpa
-		JOIN dk_dnpm_therapieplan ON (dk_dnpm_therapieplan.ref_dnpm_klinikanamnese = dk_dnpm_kpa.id)
+		JOIN dk_dnpm_therapieplan ON (dk_dnpm_therapieplan.ref_dnpm_klinikanamnese = dk_dnpm_kpa.id AND dk_dnpm_kpa.fallnummermv = ?)
 		OR dk_dnpm_therapieplan.id IN (
 			SELECT hauptprozedur_id FROM dk_molekulargenetik
 			JOIN dk_dnpm_uf_rebiopsie ON (dk_dnpm_uf_rebiopsie.ref_molekulargenetik = dk_molekulargenetik.id)
@@ -436,7 +431,7 @@ func fetchFallnummern() ([]string, error) {
 
 	var result []string
 
-	if rows, err := db.Query(query, cli.SampleId, cli.SampleId, cli.SampleId); err == nil {
+	if rows, err := db.Query(query, cli.SampleId, cli.SampleId, cli.SampleId, cli.SampleId); err == nil {
 		var caseId sql.NullString
 		for rows.Next() {
 			if err := rows.Scan(&caseId); err == nil {

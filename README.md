@@ -35,3 +35,5 @@ Enthalten sind aktuell Standardwerte für das UK Würzburg.
 ![Auswahlformular](docs/form.gif)
 
 Die Angaben zum MV-Consent in der Ausgabedatei beziehen sich auf die ausgewählte Fallnummer.
+
+Wird kein Dateiname in `--filename` angegeben, erfolgt die Ausgabe direkt.

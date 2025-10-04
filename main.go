@@ -47,7 +47,7 @@ type Globals struct {
 	Ssl      string `help:"SSL-Verbindung ('true', 'false', 'skip-verify', 'preferred')" default:"false"`
 	Database string `short:"D" help:"Database name" default:"onkostar"`
 	SampleId string `help:"Einsendenummer"`
-	Filename string `help:"Ausgabedatei" required:"NA"`
+	Filename string `help:"Ausgabedatei"`
 }
 
 type CLI struct {
@@ -157,6 +157,10 @@ func main() {
 	}
 
 	j, _ := json.MarshalIndent(data, "", "  ")
+	if len(cli.Filename) == 0 {
+		fmt.Println(string(j))
+		return
+	}
 	if err := os.WriteFile(cli.Filename, j, 0644); err != nil {
 		log.Fatal(err)
 	} else {

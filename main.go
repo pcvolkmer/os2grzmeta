@@ -212,7 +212,7 @@ func (f *Form) Init() {
 					}
 					return fallnummerOptions
 				}, &cli.SampleId).
-				Key("Fallnummer").
+				Value(&f.selectedFallnummer).
 				Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'"),
 			huh.NewSelect[string]().
 				Title("Leistungserbringer").

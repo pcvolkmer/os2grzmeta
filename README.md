@@ -36,4 +36,8 @@ Enthalten sind aktuell Standardwerte für das UK Würzburg.
 
 Die Angaben zum MV-Consent in der Ausgabedatei beziehen sich auf die ausgewählte Fallnummer.
 
+Wird für eine Einsendenummer keine Fallnummer ermittelt, ist kein zugehöriges Formular
+`OS.Molekulargenetik` im Therapieplan und/oder `DNPM Klinik/Anamnese` verwendet worden.
+Dies sorgt üblicherweise auch für Probleme beim Export der klinischen onkologischen Daten. 
+
 Wird kein Dateiname in `--filename` angegeben, erfolgt die Ausgabe direkt.

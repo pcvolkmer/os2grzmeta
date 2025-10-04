@@ -121,30 +121,20 @@ func main() {
 		log.Fatalf("Cannot fetch available Fallnummern: %s\n", err.Error())
 	}
 
-	var klinik string
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			klinikSelect().Value(&klinik),
-			profileSelect(klinik),
-			grzSelect(),
-			kdkSelect(),
-			fallnummerSelect(fallnummern),
-		).Title("Weitere Angaben zum Fall, Genomrechenzentrum und zum klinischen Datenknoten"),
-	).WithTheme(huh.ThemeBase16())
-
+	form := NewForm()
+	form.Init(fallnummern)
 	_ = form.Run()
 
-	data, _ := fetchMetadata(form.GetString("Fallnummer"))
+	data, _ := fetchMetadata(form.selectedFallnummer)
 	if data == nil {
 		log.Fatalf("Cannot fetch metadata")
 	}
 
-	data.Submission.LocalCaseID = form.GetString("Fallnummer")
-	data.Submission.ClinicalDataNodeID = form.GetString("KDK")
-	data.Submission.GenomicDataCenterID = form.GetString("GRZ")
+	data.Submission.LocalCaseID = form.selectedFallnummer
+	data.Submission.ClinicalDataNodeID = form.selectedKdk
+	data.Submission.GenomicDataCenterID = form.selectedGrz
 
-	if profile := FindProfile(klinik, form.GetString("Profil")); profile != nil {
+	if profile := FindProfile(form.selectedIk, form.selectedProfile); profile != nil {
 		data.Submission.GenomicStudyType = metadata.GenomicStudyType(profile.GenomicStudyType)
 		data.Submission.GenomicStudySubtype = metadata.GenomicStudySubtype(profile.GenomicStudySubtype)
 		data.Submission.LabName = profile.LabName
@@ -180,65 +170,99 @@ func main() {
 	}
 }
 
-func grzSelect() *huh.Select[string] {
-	return huh.NewSelect[string]().Title("Genomrechenzentrum").Options(
-		huh.NewOption("GRZK00001 (GRZ Köln)", "GRZK00001"),
-		huh.NewOption("GRZTUE002 (GRZ Tübingen)", "GRZTUE002"),
-		huh.NewOption("GRZHD0003 (GRZ Heidelberg)", "GRZHD0003"),
-		huh.NewOption("GRZDD0004 (GRZ Dresden)", "GRZDD0004"),
-		huh.NewOption("GRZM00006 (GRZ München)", "GRZM00006"),
-		huh.NewOption("GRZB00007 (GRZ Berlin)", "GRZB00007"),
-	).Key("GRZ").Description("Am Standort verwendetes Genomrechenzentrum")
+type Form struct {
+	innerForm            *huh.Form
+	availableFallnummern []string
+	selectedIk           string
+	selectedProfile      string
+	selectedKdk          string
+	selectedGrz          string
+	selectedFallnummer   string
 }
 
-func kdkSelect() *huh.Select[string] {
-	return huh.NewSelect[string]().Title("Klinischer Datenknoten").Options(
-		huh.NewOption("KDKDD0001 - GfH-NET (Universitätsklinikum Dresden)", "KDKDD0001"),
-		huh.NewOption("KDKTUE002 - NSE (Universitätsklinikum Tübingen)", "KDKTUE002"),
-		huh.NewOption("KDKL00003 - DK-FBREK (Universität Leipzig)", "KDKL00003"),
-		huh.NewOption("KDKL00004 - DK-FDK (Universität Leipzig)", "KDKL00004"),
-		huh.NewOption("KDKTUE005 - DNPM (Universitätsklinikum Tübingen)", "KDKTUE005"),
-		huh.NewOption("KDKHD0006 - NCT/DKTK MASTER (NCT Heidelberg)", "KDKHD0006"),
-		huh.NewOption("KDKK00007 - nNGM (Universitätsklinikum Köln)", "KDKK00007"),
-	).Key("KDK").Description("Am Standort verwendeter klinischer Datenknoten")
-}
-
-func fallnummerSelect(fallnummern []string) *huh.Select[string] {
-	options := []huh.Option[string]{}
-	for _, option := range fallnummern {
-		options = append(options, huh.NewOption(option, option))
+func NewForm() *Form {
+	return &Form{
+		availableFallnummern: make([]string, 0),
 	}
-	return huh.NewSelect[string]().Title("Fallnummer").
-		Options(options...).
-		Key("Fallnummer").
-		Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'")
 }
 
-func klinikSelect() *huh.Select[string] {
-	options := []huh.Option[string]{}
+func (f *Form) Run() error {
+	return f.innerForm.Run()
+}
+
+func (f *Form) Init(fallnummern []string) {
+	fallnummern, err := fetchFallnummern()
+	if err != nil {
+		log.Fatalf("Cannot fetch available Fallnummern: %s\n", err.Error())
+	}
+	f.availableFallnummern = fallnummern
+
+	ikOptions := []huh.Option[string]{}
 	for _, option := range ReadProfiles() {
-		options = append(options, huh.NewOption(fmt.Sprintf("%s - %s", option.Ik, option.Name), option.Ik))
+		ikOptions = append(ikOptions, huh.NewOption(fmt.Sprintf("%s - %s", option.Ik, option.Name), option.Ik))
 	}
-	return huh.NewSelect[string]().Title("Leistungserbringer").
-		Options(options...).
-		Key("Leistungserbringer").
-		Description("Leistungserbringer für das Modellvorhaben")
-}
 
-func profileSelect(ik string) *huh.Select[string] {
-	options := []huh.Option[string]{}
-	for _, klinik := range ReadProfiles() {
-		if klinik.Ik == ik || len(ik) == 0 {
-			options = append(options, huh.NewOption("--- (Kein Profil anwenden)", ""))
-			for _, profile := range klinik.Profiles {
-				options = append(options, huh.NewOption(profile.Name, profile.Name))
-			}
-		}
+	fallnummerOptions := []huh.Option[string]{}
+	for _, option := range fallnummern {
+		fallnummerOptions = append(fallnummerOptions, huh.NewOption(option, option))
 	}
-	return huh.NewSelect[string]().Title("Profil").
-		Options(options...).
-		Key("Profil").
-		Description("Profil for LabData - Siehe auch Formular 'Molekulargenetische Untersuchung'")
+
+	f.innerForm = huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Leistungserbringer").
+				Options(ikOptions...).
+				Value(&f.selectedIk).
+				Description("Leistungserbringer für das Modellvorhaben"),
+			huh.NewSelect[string]().
+				Title("Profil").
+				OptionsFunc(func() []huh.Option[string] {
+					options := []huh.Option[string]{}
+					for _, klinik := range ReadProfiles() {
+						if klinik.Ik == f.selectedIk || len(f.selectedIk) == 0 {
+							options = append(options, huh.NewOption("--- (Kein Profil anwenden)", ""))
+							for _, profile := range klinik.Profiles {
+								options = append(options, huh.NewOption(profile.Name, profile.Name))
+							}
+						}
+					}
+					return options
+				}, &f.selectedIk).
+				Value(&f.selectedProfile).
+				Description("Profil for LabData - Siehe auch Formular 'Molekulargenetische Untersuchung'"),
+			huh.NewSelect[string]().
+				Title("Genomrechenzentrum").
+				Options(
+					huh.NewOption("GRZK00001 (GRZ Köln)", "GRZK00001"),
+					huh.NewOption("GRZTUE002 (GRZ Tübingen)", "GRZTUE002"),
+					huh.NewOption("GRZHD0003 (GRZ Heidelberg)", "GRZHD0003"),
+					huh.NewOption("GRZDD0004 (GRZ Dresden)", "GRZDD0004"),
+					huh.NewOption("GRZM00006 (GRZ München)", "GRZM00006"),
+					huh.NewOption("GRZB00007 (GRZ Berlin)", "GRZB00007"),
+				).
+				Value(&f.selectedGrz).
+				Description("Am Standort verwendetes Genomrechenzentrum"),
+			huh.NewSelect[string]().
+				Title("Klinischer Datenknoten").
+				Options(
+					huh.NewOption("KDKDD0001 - GfH-NET (Universitätsklinikum Dresden)", "KDKDD0001"),
+					huh.NewOption("KDKTUE002 - NSE (Universitätsklinikum Tübingen)", "KDKTUE002"),
+					huh.NewOption("KDKL00003 - DK-FBREK (Universität Leipzig)", "KDKL00003"),
+					huh.NewOption("KDKL00004 - DK-FDK (Universität Leipzig)", "KDKL00004"),
+					huh.NewOption("KDKTUE005 - DNPM (Universitätsklinikum Tübingen)", "KDKTUE005"),
+					huh.NewOption("KDKHD0006 - NCT/DKTK MASTER (NCT Heidelberg)", "KDKHD0006"),
+					huh.NewOption("KDKK00007 - nNGM (Universitätsklinikum Köln)", "KDKK00007"),
+				).
+				Value(&f.selectedKdk).
+				Description("Am Standort verwendeter klinischer Datenknoten"),
+			huh.NewSelect[string]().
+				Title("Fallnummer").
+				Options(fallnummerOptions...).
+				Key("Fallnummer").
+				Description("Fallnummer für das Modellvorhaben aus Formular 'DNPM Klinik/Anamnese'"),
+		).Title("Weitere Angaben zum Fall, Genomrechenzentrum und zum klinischen Datenknoten"),
+	).
+		WithTheme(huh.ThemeBase16())
 }
 
 func fetchMetadata(fallnummer string) (*metadata.Metadata, error) {

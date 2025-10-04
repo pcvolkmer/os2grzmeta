@@ -53,6 +53,16 @@ func ReadProfiles() []Klinik {
 	return result
 }
 
+func FindKlinik(ik string) *Klinik {
+	profiles := ReadProfiles()
+	for _, klinik := range profiles {
+		if klinik.Ik == ik {
+			return &klinik
+		}
+	}
+	return nil
+}
+
 func FindProfile(ik string, profileName string) *Profile {
 	profiles := ReadProfiles()
 	for _, klinik := range profiles {

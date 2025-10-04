@@ -215,7 +215,7 @@ func (f *Form) Init(fallnummern []string) {
 				Value(&f.selectedIk).
 				Description("Leistungserbringer für das Modellvorhaben"),
 			huh.NewSelect[string]().
-				Title("Profil").
+				Title("LabData-Profil").
 				OptionsFunc(func() []huh.Option[string] {
 					options := []huh.Option[string]{}
 					for _, klinik := range ReadProfiles() {
@@ -229,6 +229,13 @@ func (f *Form) Init(fallnummern []string) {
 					return options
 				}, &f.selectedIk).
 				Value(&f.selectedProfile).
+				DescriptionFunc(func() string {
+					if klinik := FindKlinik(f.selectedIk); klinik != nil {
+						return fmt.Sprintf("Auswahl für '%s' - Siehe auch Formular 'Molekulargenetische Untersuchung'", klinik.Name)
+					} else {
+						return "Siehe auch Formular 'Molekulargenetische Untersuchung'"
+					}
+				}, &f.selectedIk).
 				Description("Profil for LabData - Siehe auch Formular 'Molekulargenetische Untersuchung'"),
 			huh.NewSelect[string]().
 				Title("Genomrechenzentrum").
@@ -241,7 +248,7 @@ func (f *Form) Init(fallnummern []string) {
 					huh.NewOption("GRZB00007 (GRZ Berlin)", "GRZB00007"),
 				).
 				Value(&f.selectedGrz).
-				Description("Am Standort verwendetes Genomrechenzentrum"),
+				Description("Zu verwendetes Genomrechenzentrum"),
 			huh.NewSelect[string]().
 				Title("Klinischer Datenknoten").
 				Options(
@@ -254,7 +261,7 @@ func (f *Form) Init(fallnummern []string) {
 					huh.NewOption("KDKK00007 - nNGM (Universitätsklinikum Köln)", "KDKK00007"),
 				).
 				Value(&f.selectedKdk).
-				Description("Am Standort verwendeter klinischer Datenknoten"),
+				Description("Zu verwendeter klinischer Datenknoten"),
 			huh.NewSelect[string]().
 				Title("Fallnummer").
 				Options(fallnummerOptions...).

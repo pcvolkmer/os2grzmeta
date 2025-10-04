@@ -32,6 +32,6 @@ Weiterhin wird das verwendete GRZ und der KDK abgefragt.
 Es können zudem für LabData-Angaben Profile ausgewählt werden, die Standardwerte setzen.
 Enthalten sind aktuell Standardwerte für das UK Würzburg.
 
-![Auswahlformular](docs/form.png)
+![Auswahlformular](docs/form.gif)
 
 Die Angaben zum MV-Consent in der Ausgabedatei beziehen sich auf die ausgewählte Fallnummer.

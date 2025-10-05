@@ -321,7 +321,7 @@ func fetchMetadata(fallnummer string) (*metadata.Metadata, error) {
 					AND prop_probenmaterial.code = dk_molekulargenetik.probenmaterial)
 			
 			# Hier die Einsendenummer aus Rohdaten-Datei in diesem Format einfügen
-			WHERE dk_molekulargenetik.entnahmedatum IS NOT NULL AND einsendenummer = ?`
+			WHERE dk_molekulargenetik.entnahmedatum IS NOT NULL AND prozedur.geloescht <> 1 AND einsendenummer = ?`
 
 	var result = metadata.Metadata{}
 

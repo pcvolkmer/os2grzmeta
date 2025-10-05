@@ -119,6 +119,7 @@ func main() {
 	form.Init()
 	_ = form.Run()
 
+	// TODO: use selected profiles library type (panel, wes, wgs) to filter form 'OS.Molekulargenetik' (?)
 	data, _ := fetchMetadata(form.selectedFallnummer)
 	if data == nil {
 		log.Fatalf("Cannot fetch metadata")
@@ -133,28 +134,30 @@ func main() {
 		data.Submission.GenomicStudyType = metadata.GenomicStudyType(profile.GenomicStudyType)
 		data.Submission.GenomicStudySubtype = metadata.GenomicStudySubtype(profile.GenomicStudySubtype)
 		data.Submission.LabName = profile.LabName
-		data.Donors[0].LabData[0].LabDataName = profile.LabDataName
-		data.Donors[0].LabData[0].TissueTypeName = profile.TissueTypeName
-		data.Donors[0].LabData[0].SequenceType = metadata.SequenceType(profile.SequenceType)
-		data.Donors[0].LabData[0].SequenceSubtype = metadata.SequenceSubtype(profile.SequenceSubType)
-		data.Donors[0].LabData[0].FragmentationMethod = metadata.FragmentationMethod(profile.FragmentationMethod)
-		data.Donors[0].LabData[0].LibraryType = metadata.LibraryType(profile.LibraryType)
-		data.Donors[0].LabData[0].LibraryPrepKit = profile.LibraryPrepKit
-		data.Donors[0].LabData[0].LibraryPrepKitManufacturer = profile.LibraryPrepKitManufacturer
-		data.Donors[0].LabData[0].SequencerModel = profile.SequencerModel
-		data.Donors[0].LabData[0].SequencerManufacturer = profile.SequencerManufacturer
-		data.Donors[0].LabData[0].KitName = profile.KitName
-		data.Donors[0].LabData[0].KitManufacturer = profile.KitManufacturer
-		data.Donors[0].LabData[0].EnrichmentKitManufacturer = metadata.EnrichmentKitManufacturer(profile.EnrichmentKitManufacturer)
-		data.Donors[0].LabData[0].EnrichmentKitDescription = profile.EnrichmentKitDescription
-		data.Donors[0].LabData[0].SequencingLayout = metadata.SequencingLayout(profile.SequencingLayout)
-		data.Donors[0].LabData[0].TumorCellCount[0].Method = metadata.Method(profile.TumorCellCountMethod)
-		data.Donors[0].LabData[0].SequenceData.BioinformaticsPipelineName = profile.BioinformaticsPipelineName
-		data.Donors[0].LabData[0].SequenceData.BioinformaticsPipelineVersion = profile.BioinformaticsPipelineVersion
-		data.Donors[0].LabData[0].SequenceData.CallerUsed = append(data.Donors[0].LabData[0].SequenceData.CallerUsed, metadata.CallerUsed{
-			Name:    profile.CallerUsedName,
-			Version: profile.CallerUsedVersion,
-		})
+		for idx := range data.Donors[0].LabData {
+			data.Donors[0].LabData[idx].LabDataName = profile.LabDataName
+			data.Donors[0].LabData[idx].TissueTypeName = profile.TissueTypeName
+			data.Donors[0].LabData[idx].SequenceType = metadata.SequenceType(profile.SequenceType)
+			data.Donors[0].LabData[idx].SequenceSubtype = metadata.SequenceSubtype(profile.SequenceSubType)
+			data.Donors[0].LabData[idx].FragmentationMethod = metadata.FragmentationMethod(profile.FragmentationMethod)
+			data.Donors[0].LabData[idx].LibraryType = metadata.LibraryType(profile.LibraryType)
+			data.Donors[0].LabData[idx].LibraryPrepKit = profile.LibraryPrepKit
+			data.Donors[0].LabData[idx].LibraryPrepKitManufacturer = profile.LibraryPrepKitManufacturer
+			data.Donors[0].LabData[idx].SequencerModel = profile.SequencerModel
+			data.Donors[0].LabData[idx].SequencerManufacturer = profile.SequencerManufacturer
+			data.Donors[0].LabData[idx].KitName = profile.KitName
+			data.Donors[0].LabData[idx].KitManufacturer = profile.KitManufacturer
+			data.Donors[0].LabData[idx].EnrichmentKitManufacturer = metadata.EnrichmentKitManufacturer(profile.EnrichmentKitManufacturer)
+			data.Donors[0].LabData[idx].EnrichmentKitDescription = profile.EnrichmentKitDescription
+			data.Donors[0].LabData[idx].SequencingLayout = metadata.SequencingLayout(profile.SequencingLayout)
+			data.Donors[0].LabData[idx].TumorCellCount[0].Method = metadata.Method(profile.TumorCellCountMethod)
+			data.Donors[0].LabData[idx].SequenceData.BioinformaticsPipelineName = profile.BioinformaticsPipelineName
+			data.Donors[0].LabData[idx].SequenceData.BioinformaticsPipelineVersion = profile.BioinformaticsPipelineVersion
+			data.Donors[0].LabData[idx].SequenceData.CallerUsed = append(data.Donors[0].LabData[idx].SequenceData.CallerUsed, metadata.CallerUsed{
+				Name:    profile.CallerUsedName,
+				Version: profile.CallerUsedVersion,
+			})
+		}
 	}
 
 	j, _ := json.MarshalIndent(data, "", "  ")

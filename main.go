@@ -127,6 +127,7 @@ func main() {
 	data.Submission.LocalCaseID = form.selectedFallnummer
 	data.Submission.ClinicalDataNodeID = form.selectedKdk
 	data.Submission.GenomicDataCenterID = form.selectedGrz
+	data.Submission.SubmitterID = form.selectedIk
 
 	if profile := FindProfile(form.selectedIk, form.selectedProfile); profile != nil {
 		data.Submission.GenomicStudyType = metadata.GenomicStudyType(profile.GenomicStudyType)
